@@ -200,12 +200,14 @@ auth:
 | `GET` | `/api/repos` | Configured repos and status |
 | `GET` | `/api/activity` | All commits across all repos |
 | `GET` | `/api/activity/:repo` | Commits for a single repo |
-| `GET` | `/api/summary?style=standup` | AI summary (cached per style) |
+| `GET` | `/api/summary?style=standup` | AI summary — served from DB if already generated today |
 | `GET` | `/api/report.md?style=standup` | Download Markdown report |
 | `GET` | `/api/report.json?style=standup` | Download JSON report |
-| `POST` | `/api/refresh` | Force refresh git data + regenerate summary |
+| `POST` | `/api/refresh` | Clear git + AI cache, force fresh data on next request |
 | `GET` | `/api/history` | List saved reports |
 | `GET` | `/api/history/:id` | Fetch a saved report |
+| `POST` | `/api/init` | Generate AI context for all repos with `context: auto` |
+| `GET` | `/api/contexts` | View stored per-repo contexts |
 
 ---
 

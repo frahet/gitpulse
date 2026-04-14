@@ -89,7 +89,7 @@ if (config.auth.enabled) {
 
 app.get('/api/health', async () => ({
   status: 'ok',
-  version: '1.0.0',
+  version: '1.1.0',
   uptime: process.uptime(),
 }));
 

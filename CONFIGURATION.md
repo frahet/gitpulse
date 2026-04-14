@@ -18,6 +18,7 @@ All configuration lives in `gitpulse.yml`. Sensitive values (API keys, passwords
   - [Google Gemini](#google-gemini)
   - [Mistral](#mistral)
 - [AI context](#ai-context)
+- [Per-repo context](#per-repo-context)
 - [Diff reading](#diff-reading)
 - [Summary styles](#summary-styles)
 - [Notifications](#notifications)
@@ -408,6 +409,70 @@ ai:
     Key services: ingress (Nginx), observability (Grafana/Loki/Tempo), auth (Keycloak).
     Prod changes require a PR approval and a manual terraform plan review.
 ```
+
+---
+
+## Per-repo context
+
+Each repo can have its own context instead of (or as well as) the global `ai.context`. This gives the AI precise knowledge per project, making summaries significantly more accurate when you monitor multiple unrelated repos.
+
+```yaml
+repos:
+  - name: "my-app"
+    source: "github"
+    owner: "my-org"
+    repo: "my-app"
+    context: auto
+    # context: null                              # inherit global ai.context
+    # context: "React SaaS using Postgres."      # manual one-liner
+```
+
+### Context modes
+
+| Value | Behaviour |
+| --- | --- |
+| `auto` | AI reads your README + package.json + root listing and generates a description. Run `POST /api/init` to trigger. |
+| `null` | No per-repo context. Falls back to global `ai.context`. |
+| `"your text"` | Uses your string exactly. Good when auto-detection would miss domain terms. |
+
+### Running init
+
+```bash
+# via curl
+curl -X POST http://localhost:3000/api/init
+
+# check what was generated
+curl http://localhost:3000/api/contexts
+```
+
+Output:
+
+```json
+{
+  "results": [
+    { "repo": "my-app", "context": "React SaaS for project management using Postgres and Stripe", "status": "ok" },
+    { "repo": "mobile", "context": "React Native iOS/Android app, Expo managed workflow", "status": "ok" }
+  ]
+}
+```
+
+Results are stored in SQLite (`repo_contexts` table) and survive restarts. Run init again at any time to refresh — it upserts, so re-running is safe. You only need to re-run when your projects change significantly.
+
+### Viewing and overriding stored contexts
+
+```bash
+# list all stored contexts
+curl http://localhost:3000/api/contexts
+```
+
+To override an auto-generated context, change `context: auto` to a manual string in your config:
+
+```yaml
+- name: "my-app"
+  context: "Multi-tenant B2B SaaS. Workspace = customer account. Jobs = their projects."
+```
+
+The manual string takes precedence over anything in the DB.
 
 ---
 
