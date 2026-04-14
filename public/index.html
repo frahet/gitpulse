@@ -23,6 +23,24 @@
 
 <main>
 
+  <!-- Reports toolbar -->
+  <div class="reports-bar">
+    <div class="reports-bar-left">
+      <span class="reports-label">SUMMARY STYLE</span>
+      <div class="style-group">
+        <button class="style-btn active" data-style="standup">Standup</button>
+        <button class="style-btn" data-style="management">Management</button>
+        <button class="style-btn" data-style="technical">Technical</button>
+      </div>
+      <button id="generate-btn">↻ Generate</button>
+    </div>
+    <div class="reports-bar-right">
+      <span class="reports-label">DOWNLOAD</span>
+      <button id="dl-md-btn">↓ Markdown</button>
+      <button id="dl-json-btn">↓ JSON</button>
+    </div>
+  </div>
+
   <!-- Stat cards -->
   <div class="stat-grid">
     <div class="stat-card">
@@ -98,10 +116,6 @@
 
 <footer>
   <a href="https://github.com/frahet/gitpulse" target="_blank" rel="noopener">GitPulse</a>
-  &nbsp;·&nbsp;
-  <a href="/api/report.md">Download Report (.md)</a>
-  &nbsp;·&nbsp;
-  <a href="/api/report.json">Download Report (.json)</a>
 </footer>
 
 <script src="/app.js"></script>

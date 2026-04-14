@@ -1,9 +1,11 @@
-import Anthropic from '@anthropic-ai/sdk';
+import { generateText } from 'ai';
+import { anthropic } from '@ai-sdk/anthropic';
+import { openai } from '@ai-sdk/openai';
+import { google } from '@ai-sdk/google';
+import { mistral } from '@ai-sdk/mistral';
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-
-// In-memory cache: { data, expiresAt }
-let cache = null;
+// Per-style cache: Map<"provider/model/style", { data, expiresAt }>
+const summaryCache = new Map();
 const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
 
 const STYLE_INSTRUCTIONS = {
@@ -15,67 +17,73 @@ const STYLE_INSTRUCTIONS = {
     'Format as concise bullet points per person. Each person: what they did, what is in progress. Keep it tight — this is a daily standup.',
 };
 
-export async function generateSummary(parsedData, aiConfig) {
-  if (!aiConfig.enabled) return null;
-  if (!process.env.ANTHROPIC_API_KEY) return null;
+const SUPPORTED_PROVIDERS = {
+  anthropic: (model) => anthropic(model),
+  openai:    (model) => openai(model),
+  google:    (model) => google(model),
+  mistral:   (model) => mistral(model),
+};
 
-  // Return cached result if still valid
-  if (cache && Date.now() < cache.expiresAt) {
-    return cache.data;
+function getModel(provider, model) {
+  const factory = SUPPORTED_PROVIDERS[provider];
+  if (!factory) {
+    const valid = Object.keys(SUPPORTED_PROVIDERS).join(', ');
+    throw new Error(`Unknown AI provider "${provider}". Supported: ${valid}`);
+  }
+  return factory(model);
+}
+
+export async function generateSummary(parsedData, aiConfig, styleOverride = null) {
+  if (!aiConfig.enabled) return null;
+
+  const { provider, model } = aiConfig;
+  const style = styleOverride ?? aiConfig.summary_style ?? 'standup';
+  const cacheKey = `${provider}/${model}/${style}`;
+
+  const cached = summaryCache.get(cacheKey);
+  if (cached && Date.now() < cached.expiresAt) {
+    return cached.data;
   }
 
-  const style = aiConfig.summary_style ?? 'standup';
   const styleInstruction = STYLE_INSTRUCTIONS[style] ?? STYLE_INSTRUCTIONS.standup;
-
   const prompt = buildPrompt(parsedData, styleInstruction);
 
-  const response = await client.messages.create({
-    model: aiConfig.model,
-    max_tokens: 1024,
-    system: [
-      {
-        type: 'text',
-        text: 'You are an engineering analytics assistant. You receive structured git activity data and produce clear, useful summaries. Be factual — only report what the data shows.',
-        cache_control: { type: 'ephemeral' },
-      },
-    ],
-    messages: [{ role: 'user', content: prompt }],
+  const { text } = await generateText({
+    model: getModel(provider, model),
+    system: 'You are an engineering analytics assistant. You receive structured git activity data and produce clear, useful summaries. Be factual — only report what the data shows.',
+    prompt,
+    maxTokens: 1024,
   });
-
-  const text = response.content[0]?.text ?? '';
-
-  const byAuthor = parsedData.byAuthor.map((a) => ({
-    name: a.name,
-    commits: a.commitCount,
-    summary: extractAuthorSummary(text, a.name),
-  }));
 
   const highlights = extractHighlights(text);
 
   const result = {
     overall: text,
-    by_author: byAuthor,
+    by_author: parsedData.byAuthor.map((a) => ({
+      name: a.name,
+      commits: a.commitCount,
+      summary: extractAuthorSummary(text, a.name),
+    })),
     highlights,
     style,
+    provider,
+    model,
     generated_at: new Date().toISOString(),
   };
 
-  cache = { data: result, expiresAt: Date.now() + CACHE_TTL_MS };
+  summaryCache.set(cacheKey, { data: result, expiresAt: Date.now() + CACHE_TTL_MS });
   return result;
 }
 
 export function clearCache() {
-  cache = null;
+  summaryCache.clear();
 }
 
 function buildPrompt(parsedData, styleInstruction) {
   const { stats, byAuthor, byDay, repos } = parsedData;
 
   const authorLines = byAuthor
-    .map(
-      (a) =>
-        `  - ${a.name} (${a.commitCount} commits, +${a.insertions}/-${a.deletions} lines): ${a.recentMessages.slice(0, 3).join('; ')}`
-    )
+    .map((a) => `  - ${a.name} (${a.commitCount} commits, +${a.insertions}/-${a.deletions} lines): ${a.recentMessages.slice(0, 3).join('; ')}`)
     .join('\n');
 
   const dayLines = byDay
@@ -85,7 +93,7 @@ function buildPrompt(parsedData, styleInstruction) {
   const repoLines = repos.map((r) => `  - ${r.name}: ${r.commitCount} commits`).join('\n');
 
   return `
-Here is the git activity data for the past ${stats.totalCommits > 0 ? 'reporting period' : '0 days'}:
+Here is the git activity data for the reporting period:
 
 OVERVIEW
 - Total commits: ${stats.totalCommits}
@@ -104,7 +112,7 @@ ${dayLines}
 
 SUMMARY STYLE: ${styleInstruction}
 
-Write the summary now. Return a plain-text summary (no markdown headers). Then on a new line write "HIGHLIGHTS:" followed by 3-5 bullet points of the most notable things.
+Write the summary now. Return plain text (no markdown headers). Then on a new line write "HIGHLIGHTS:" followed by 3-5 bullet points of the most notable things.
 `.trim();
 }
 
@@ -112,10 +120,7 @@ function extractAuthorSummary(fullText, authorName) {
   const lines = fullText.split('\n');
   const idx = lines.findIndex((l) => l.toLowerCase().includes(authorName.toLowerCase()));
   if (idx === -1) return '';
-  return lines
-    .slice(idx, idx + 3)
-    .join(' ')
-    .trim();
+  return lines.slice(idx, idx + 3).join(' ').trim();
 }
 
 function extractHighlights(text) {

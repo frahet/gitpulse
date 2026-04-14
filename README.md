@@ -37,7 +37,7 @@ gitpulse:
 
   ai:
     provider: "anthropic"
-    model: "claude-sonnet-4-20250514"
+    model: "claude-sonnet-4-6"
     enabled: true
     summary_style: "standup"   # management | technical | standup
 

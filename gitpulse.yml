@@ -10,13 +10,20 @@ gitpulse:
       branch: "main"
 
   ai:
-    provider: "anthropic"
-    model: "claude-sonnet-4-20250514"
     enabled: true
-    summary_style: "standup"   # management | technical | standup
+    provider: "anthropic"         # anthropic | openai | google | mistral
+    model: "claude-sonnet-4-6"
+    # provider: "openai"
+    # model: "gpt-4o"
+    
+    # provider: "google"
+    # model: "gemini-2.0-flash"
+    # provider: "mistral"
+    # model: "mistral-large-latest"
+    summary_style: "standup"      # standup | management | technical
 
   reports:
-    schedule: "0 9 * * 1-5"   # weekdays at 9am
+    schedule: "0 9 * * 1-5"      # weekdays at 9am
     lookback_days: 7
     output_formats:
       - html

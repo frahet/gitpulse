@@ -100,10 +100,14 @@ app.get('/api/activity/:repo', async (req, reply) => {
   }
 });
 
-app.get('/api/summary', async (_req, reply) => {
+const VALID_STYLES = ['standup', 'management', 'technical'];
+
+app.get('/api/summary', async (req, reply) => {
   try {
+    const styleParam = req.query.style;
+    const style = VALID_STYLES.includes(styleParam) ? styleParam : null;
     const data = await getActivityData();
-    const summary = await generateSummary(data, config.ai);
+    const summary = await generateSummary(data, config.ai, style);
     if (!summary) {
       return reply.send({ enabled: false, message: 'AI summaries are disabled or ANTHROPIC_API_KEY not set' });
     }
@@ -113,10 +117,12 @@ app.get('/api/summary', async (_req, reply) => {
   }
 });
 
-app.get('/api/report.md', async (_req, reply) => {
+app.get('/api/report.md', async (req, reply) => {
   try {
+    const styleParam = req.query.style;
+    const style = VALID_STYLES.includes(styleParam) ? styleParam : null;
     const data = await getActivityData();
-    const summary = await generateSummary(data, config.ai);
+    const summary = await generateSummary(data, config.ai, style);
     const md = buildMarkdownReport(data, summary, config);
     reply.header('Content-Type', 'text/markdown; charset=utf-8');
     reply.header('Content-Disposition', 'attachment; filename="gitpulse-report.md"');
@@ -126,10 +132,12 @@ app.get('/api/report.md', async (_req, reply) => {
   }
 });
 
-app.get('/api/report.json', async (_req, reply) => {
+app.get('/api/report.json', async (req, reply) => {
   try {
+    const styleParam = req.query.style;
+    const style = VALID_STYLES.includes(styleParam) ? styleParam : null;
     const data = await getActivityData();
-    const summary = await generateSummary(data, config.ai);
+    const summary = await generateSummary(data, config.ai, style);
     return reply.send(buildJsonReport(data, summary, config));
   } catch (err) {
     reply.status(500).send({ error: err.message });

@@ -8,6 +8,8 @@ services:
       - ./gitpulse.yml:/app/gitpulse.yml:ro
       # Mount your repos — update the left side to your local path
       - /path/to/your/repos:/repos:ro
+    env_file:
+      - .env
     environment:
       # Required if ai.enabled: true in gitpulse.yml
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}

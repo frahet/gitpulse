@@ -26,7 +26,7 @@ function validateConfig(raw) {
     })),
     ai: {
       provider: cfg.ai?.provider ?? 'anthropic',
-      model: cfg.ai?.model ?? 'claude-sonnet-4-20250514',
+      model: cfg.ai?.model ?? 'claude-sonnet-4-6',
       enabled: cfg.ai?.enabled ?? false,
       summary_style: cfg.ai?.summary_style ?? 'standup',
     },

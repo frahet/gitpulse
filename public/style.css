@@ -78,6 +78,59 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 
 main { padding: 24px; max-width: 1200px; margin: 0 auto; }
 
+/* ---- Reports toolbar ---- */
+.reports-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px 20px;
+  margin-bottom: 16px;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.reports-bar-left,
+.reports-bar-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.reports-label {
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  white-space: nowrap;
+}
+
+.style-group {
+  display: flex;
+  gap: 4px;
+}
+
+.style-btn {
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  padding: 4px 12px;
+  font-size: 12px;
+}
+
+.style-btn:hover {
+  background: var(--surface2);
+  color: var(--text);
+}
+
+.style-btn.active {
+  background: var(--accent-dim);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
 /* ---- Stat cards ---- */
 .stat-grid {
   display: grid;

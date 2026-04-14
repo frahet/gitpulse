@@ -1,5 +1,6 @@
 const API = '';
 let refreshTimer = null;
+let activeStyle = 'standup';
 
 async function fetchJSON(url) {
   const res = await fetch(API + url);
@@ -26,7 +27,8 @@ function renderSummary(summary) {
     return;
   }
   panel.style.display = '';
-  el('summary-style-badge').textContent = summary.style ?? 'ai';
+  const providerLabel = summary.provider ? `${summary.provider} · ${summary.style}` : (summary.style ?? 'ai');
+  el('summary-style-badge').textContent = providerLabel;
   el('summary-text').textContent = summary.overall ?? '';
 
   const hl = el('summary-highlights');
@@ -128,7 +130,7 @@ async function loadAll() {
   try {
     const [activity, summary] = await Promise.all([
       fetchJSON('/api/activity'),
-      fetchJSON('/api/summary').catch(() => null),
+      fetchJSON(`/api/summary?style=${activeStyle}`).catch(() => null),
     ]);
 
     renderStatCards(activity.stats);
@@ -160,6 +162,41 @@ function scheduleAutoRefresh() {
   if (refreshTimer) clearInterval(refreshTimer);
   refreshTimer = setInterval(loadAll, 5 * 60 * 1000);
 }
+
+// ---- Reports toolbar ----
+
+document.querySelectorAll('.style-btn').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.style-btn').forEach((b) => b.classList.remove('active'));
+    btn.classList.add('active');
+    activeStyle = btn.dataset.style;
+  });
+});
+
+el('generate-btn').addEventListener('click', async () => {
+  el('generate-btn').disabled = true;
+  el('generate-btn').textContent = '…';
+  try {
+    // Clear server cache for this style then fetch fresh summary
+    await fetch('/api/refresh', { method: 'POST' });
+    const summary = await fetchJSON(`/api/summary?style=${activeStyle}`);
+    renderSummary(summary);
+    el('last-updated').textContent = `Summary updated ${new Date().toLocaleTimeString()}`;
+  } catch (err) {
+    el('last-updated').textContent = `Error: ${err.message}`;
+  } finally {
+    el('generate-btn').disabled = false;
+    el('generate-btn').textContent = '↻ Generate';
+  }
+});
+
+el('dl-md-btn').addEventListener('click', () => {
+  window.location.href = `/api/report.md?style=${activeStyle}`;
+});
+
+el('dl-json-btn').addEventListener('click', () => {
+  window.location.href = `/api/report.json?style=${activeStyle}`;
+});
 
 el('refresh-btn').addEventListener('click', manualRefresh);
 loadAll();
