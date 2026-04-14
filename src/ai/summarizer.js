@@ -33,7 +33,7 @@ function getModel(provider, model) {
   return factory(model);
 }
 
-export async function generateSummary(parsedData, aiConfig, styleOverride = null) {
+export async function generateSummary(parsedData, aiConfig, styleOverride = null, repoContexts = {}) {
   if (!aiConfig.enabled) return null;
 
   const { provider, model } = aiConfig;
@@ -46,11 +46,18 @@ export async function generateSummary(parsedData, aiConfig, styleOverride = null
   }
 
   const styleInstruction = STYLE_INSTRUCTIONS[style] ?? STYLE_INSTRUCTIONS.standup;
-  const prompt = buildPrompt(parsedData, styleInstruction);
+  const prompt = buildPrompt(parsedData, styleInstruction, repoContexts);
+
+  // Build context block: global fallback + per-repo overrides
+  const contextLines = [];
+  if (aiConfig.context) contextLines.push(`GLOBAL PROJECT CONTEXT: ${aiConfig.context}`);
+  for (const [repo, ctx] of Object.entries(repoContexts)) {
+    if (ctx) contextLines.push(`REPO "${repo}": ${ctx}`);
+  }
 
   const systemPrompt = [
     'You are an engineering analytics assistant. You receive structured git activity data and produce clear, useful summaries. Be factual — only report what the data shows.',
-    aiConfig.context ? `PROJECT CONTEXT: ${aiConfig.context}` : null,
+    contextLines.length ? contextLines.join('\n') : null,
   ].filter(Boolean).join('\n\n');
 
   const { text } = await generateText({
@@ -84,10 +91,13 @@ export function clearCache() {
   summaryCache.clear();
 }
 
-function buildPrompt(parsedData, styleInstruction) {
+function buildPrompt(parsedData, styleInstruction, repoContexts = {}) {
   const { stats, byAuthor, byDay, repos, hotFiles, allCommits } = parsedData;
 
-  const repoLines = repos.map((r) => `  - ${r.name}: ${r.commitCount} commits`).join('\n');
+  const repoLines = repos.map((r) => {
+    const ctx = repoContexts[r.name];
+    return `  - ${r.name}: ${r.commitCount} commits${ctx ? ` (${ctx})` : ''}`;
+  }).join('\n');
 
   const authorLines = byAuthor
     .map((a) => `  - ${a.name} (${a.commitCount} commits, +${a.insertions}/-${a.deletions} lines): ${a.recentMessages.slice(0, 3).join('; ')}`)

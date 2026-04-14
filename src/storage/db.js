@@ -28,6 +28,14 @@ function migrate(db) {
     );
 
     CREATE INDEX IF NOT EXISTS reports_created_at ON reports(created_at DESC);
+
+    CREATE TABLE IF NOT EXISTS repo_contexts (
+      repo         TEXT PRIMARY KEY,
+      context      TEXT NOT NULL,
+      source       TEXT NOT NULL DEFAULT 'auto',  -- 'auto' | 'manual'
+      model        TEXT,
+      generated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
   `);
 }
 
@@ -76,6 +84,29 @@ export function getTodaysReport(style) {
   `).get(style, today);
   if (!row) return null;
   return { ...deserializeReport(row), fullData: JSON.parse(row.full_data) };
+}
+
+export function saveRepoContext({ repo, context, source = 'auto', model = null }) {
+  const db = getDb();
+  db.prepare(`
+    INSERT INTO repo_contexts (repo, context, source, model, generated_at)
+    VALUES (@repo, @context, @source, @model, datetime('now'))
+    ON CONFLICT(repo) DO UPDATE SET
+      context      = excluded.context,
+      source       = excluded.source,
+      model        = excluded.model,
+      generated_at = excluded.generated_at
+  `).run({ repo, context, source, model });
+}
+
+export function getRepoContext(repo) {
+  const db = getDb();
+  return db.prepare(`SELECT * FROM repo_contexts WHERE repo = ?`).get(repo) ?? null;
+}
+
+export function listRepoContexts() {
+  const db = getDb();
+  return db.prepare(`SELECT * FROM repo_contexts ORDER BY repo`).all();
 }
 
 // Deletes all reports saved today — called on manual refresh so the next

@@ -11,7 +11,9 @@ import { collectAll } from './git/collector.js';
 import { parseRepoData } from './git/parser.js';
 import { generateSummary, clearCache } from './ai/summarizer.js';
 import { buildMarkdownReport, buildJsonReport } from './reports/generator.js';
-import { saveReport, listReports, getReport, getTodaysReport, clearTodaysReports } from './storage/db.js';
+import { saveReport, listReports, getReport, getTodaysReport, clearTodaysReports, saveRepoContext, getRepoContext, listRepoContexts } from './storage/db.js';
+import { readRepoInfo } from './git/context-reader.js';
+import { generateRepoContext } from './ai/context-generator.js';
 import { sendSlackNotification } from './notifications/slack.js';
 import { sendEmailNotification } from './notifications/email.js';
 
@@ -30,6 +32,22 @@ try {
 let dataCache = null;
 let dataCacheAt = null;
 const DATA_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+// Builds a { repoName: contextString } map from DB + manual config entries
+function buildRepoContexts() {
+  const map = {};
+  for (const repo of config.repos) {
+    if (repo.context && repo.context !== 'auto') {
+      // Manual context set directly in config
+      map[repo.name] = repo.context;
+    } else {
+      // Try DB (covers both 'auto'-generated and any previously saved)
+      const stored = getRepoContext(repo.name);
+      if (stored) map[repo.name] = stored.context;
+    }
+  }
+  return map;
+}
 
 async function getActivityData() {
   if (dataCache && Date.now() - dataCacheAt < DATA_CACHE_TTL_MS) {
@@ -124,7 +142,8 @@ app.get('/api/summary', async (req, reply) => {
     }
 
     const data = await getActivityData();
-    const summary = await generateSummary(data, config.ai, style);
+    const repoContexts = buildRepoContexts();
+    const summary = await generateSummary(data, config.ai, style, repoContexts);
     if (!summary) {
       return reply.send({ enabled: false, message: 'AI summary could not be generated' });
     }
@@ -205,6 +224,45 @@ app.post('/api/refresh', async (_req, reply) => {
   }
 });
 
+app.get('/api/contexts', async (_req, reply) => {
+  try {
+    return reply.send({ contexts: listRepoContexts() });
+  } catch (err) {
+    reply.status(500).send({ error: err.message });
+  }
+});
+
+// POST /api/init — generates AI context for every repo with context: "auto" in config.
+// Skips repos with manual context strings. Safe to re-run (upserts).
+app.post('/api/init', async (_req, reply) => {
+  if (!config.ai.enabled) {
+    return reply.status(400).send({ error: 'AI is disabled. Set ai.enabled: true in config.' });
+  }
+
+  const autoRepos = config.repos.filter((r) => r.context === 'auto');
+  if (!autoRepos.length) {
+    return reply.send({ message: 'No repos have context: auto. Add context: auto to repos in config.', results: [] });
+  }
+
+  const results = [];
+
+  for (const repo of autoRepos) {
+    try {
+      console.log(`[gitpulse] init: reading ${repo.name}...`);
+      const info = await readRepoInfo(repo);
+      const context = await generateRepoContext(info, config.ai);
+      saveRepoContext({ repo: repo.name, context, source: 'auto', model: config.ai.model });
+      console.log(`[gitpulse] init: ${repo.name} → "${context}"`);
+      results.push({ repo: repo.name, context, status: 'ok' });
+    } catch (err) {
+      console.error(`[gitpulse] init: ${repo.name} failed — ${err.message}`);
+      results.push({ repo: repo.name, error: err.message, status: 'error' });
+    }
+  }
+
+  return reply.send({ results });
+});
+
 // --- Cron scheduler ---
 import cron from 'node-cron';
 
@@ -216,7 +274,8 @@ async function runScheduledReport() {
     clearCache();
     const data = await getActivityData();
     const style = config.ai.summary_style;
-    const summary = config.ai.enabled ? await generateSummary(data, config.ai, style) : null;
+    const repoContexts = buildRepoContexts();
+    const summary = config.ai.enabled ? await generateSummary(data, config.ai, style, repoContexts) : null;
     const md = buildMarkdownReport(data, summary, config);
 
     if (summary) {

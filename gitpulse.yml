@@ -9,6 +9,9 @@ gitpulse:
       repo: "my-app"
       branch: "main"
       # token: "ghp_..."   # or set GITHUB_TOKEN env var
+      context: auto        # auto = AI generates context via POST /api/init
+      # context: null      # inherit global ai.context
+      # context: "React SaaS for project management using Postgres and Stripe."  # manual
 
     # GitLab
     # - name: "backend"

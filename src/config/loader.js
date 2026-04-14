@@ -36,6 +36,8 @@ function validateConfig(raw) {
       // shared
       branch: r.branch ?? 'main',
       token: r.token ?? null,
+      // context: null = inherit global, 'auto' = AI-generated on init, any string = manual
+      context: r.context ?? null,
     })),
     ai: {
       provider: cfg.ai?.provider ?? 'anthropic',
