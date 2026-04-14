@@ -8,21 +8,35 @@ AI summaries via Anthropic, OpenAI, Google Gemini, or Mistral — your choice.
 
 ## Quick start
 
-#### Docker (recommended)
+#### Docker — pre-built image (fastest)
 
 ```bash
-# 1. Copy example files
-cp gitpulse.yml gitpulse.local.yml   # local override — gitignored
+# Pull the latest release
+docker pull ghcr.io/frahet/gitpulse:latest
+
+# Create your config and env file
+curl -O https://raw.githubusercontent.com/frahet/gitpulse/main/gitpulse.yml
+curl -O https://raw.githubusercontent.com/frahet/gitpulse/main/.env.example
 cp .env.example .env
+# edit gitpulse.yml and .env
 
-# 2. Edit gitpulse.local.yml — set your repos, AI provider, etc.
-# 3. Edit .env — add your API key
-
-# 4. Run
-CONFIG_PATH=./gitpulse.local.yml docker compose up
+docker run -d \
+  --name gitpulse \
+  -p 3000:3000 \
+  -v $(pwd)/gitpulse.yml:/app/gitpulse.yml:ro \
+  -v $(pwd)/data:/app/data \
+  --env-file .env \
+  ghcr.io/frahet/gitpulse:latest
 ```
 
-Open <http://localhost:3000>
+#### Docker Compose (recommended for ongoing use)
+
+```bash
+cp gitpulse.yml gitpulse.local.yml   # local override — gitignored
+cp .env.example .env
+# edit both files
+CONFIG_PATH=./gitpulse.local.yml docker compose up -d
+```
 
 #### Bare Node.js
 

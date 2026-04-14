@@ -78,6 +78,14 @@ export function getTodaysReport(style) {
   return { ...deserializeReport(row), fullData: JSON.parse(row.full_data) };
 }
 
+// Deletes all reports saved today — called on manual refresh so the next
+// summary request calls the AI API fresh instead of returning the cached version.
+export function clearTodaysReports() {
+  const db = getDb();
+  const today = new Date().toISOString().slice(0, 10);
+  db.prepare(`DELETE FROM reports WHERE date(created_at) = ?`).run(today);
+}
+
 function deserializeReport(row) {
   return {
     ...row,

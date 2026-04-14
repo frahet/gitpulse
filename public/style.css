@@ -203,6 +203,25 @@ main { padding: 24px; max-width: 1200px; margin: 0 auto; }
   letter-spacing: 0.06em;
 }
 
+.summary-source {
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 3px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-left: auto;
+}
+.source-cached {
+  background: rgba(136,136,136,0.1);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+}
+.source-live {
+  background: rgba(76,175,125,0.1);
+  color: var(--green);
+  border: 1px solid var(--green);
+}
+
 .panel-body { padding: 20px; }
 
 /* ---- AI Summary ---- */

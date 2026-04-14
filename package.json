@@ -1,6 +1,6 @@
 {
   "name": "gitpulse",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Self-hosted Git analytics and AI reporting — docker run and it just works",
   "type": "module",
   "main": "src/index.js",

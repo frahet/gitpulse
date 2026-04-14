@@ -29,6 +29,16 @@ function renderSummary(summary) {
   panel.style.display = '';
   const providerLabel = summary.provider ? `${summary.provider} · ${summary.style}` : (summary.style ?? 'ai');
   el('summary-style-badge').textContent = providerLabel;
+
+  const sourceEl = el('summary-source');
+  if (summary.source === 'db') {
+    sourceEl.textContent = 'cached today';
+    sourceEl.className = 'summary-source source-cached';
+  } else {
+    sourceEl.textContent = 'just generated';
+    sourceEl.className = 'summary-source source-live';
+  }
+
   el('summary-text').textContent = summary.overall ?? '';
 
   const hl = el('summary-highlights');
@@ -177,9 +187,10 @@ el('generate-btn').addEventListener('click', async () => {
   el('generate-btn').disabled = true;
   el('generate-btn').textContent = '…';
   try {
-    // Clear server cache for this style then fetch fresh summary
+    // POST /api/refresh clears git cache + today's DB reports, then force=true
+    // ensures we call the AI API even if a new DB entry was saved moments ago
     await fetch('/api/refresh', { method: 'POST' });
-    const summary = await fetchJSON(`/api/summary?style=${activeStyle}`);
+    const summary = await fetchJSON(`/api/summary?style=${activeStyle}&force=true`);
     renderSummary(summary);
     el('last-updated').textContent = `Summary updated ${new Date().toLocaleTimeString()}`;
   } catch (err) {

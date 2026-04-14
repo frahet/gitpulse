@@ -11,7 +11,7 @@ import { collectAll } from './git/collector.js';
 import { parseRepoData } from './git/parser.js';
 import { generateSummary, clearCache } from './ai/summarizer.js';
 import { buildMarkdownReport, buildJsonReport } from './reports/generator.js';
-import { saveReport, listReports, getReport, getTodaysReport } from './storage/db.js';
+import { saveReport, listReports, getReport, getTodaysReport, clearTodaysReports } from './storage/db.js';
 import { sendSlackNotification } from './notifications/slack.js';
 import { sendEmailNotification } from './notifications/email.js';
 
@@ -71,7 +71,7 @@ if (config.auth.enabled) {
 
 app.get('/api/health', async () => ({
   status: 'ok',
-  version: '0.1.0',
+  version: '1.0.0',
   uptime: process.uptime(),
 }));
 
@@ -196,6 +196,7 @@ app.post('/api/refresh', async (_req, reply) => {
   dataCache = null;
   dataCacheAt = null;
   clearCache();
+  clearTodaysReports(); // force next /api/summary call to regenerate via AI
   try {
     const data = await getActivityData();
     return reply.send({ ok: true, stats: data.stats, refreshedAt: new Date().toISOString() });
