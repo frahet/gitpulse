@@ -1,0 +1,29 @@
+gitpulse:
+  port: 3000
+
+  repos:
+    - name: "my-app"
+      path: "/repos/my-app"       # local path — mount via Docker volume
+      branch: "main"
+    - name: "backend-api"
+      path: "/repos/backend-api"
+      branch: "main"
+
+  ai:
+    provider: "anthropic"
+    model: "claude-sonnet-4-20250514"
+    enabled: true
+    summary_style: "standup"   # management | technical | standup
+
+  reports:
+    schedule: "0 9 * * 1-5"   # weekdays at 9am
+    lookback_days: 7
+    output_formats:
+      - html
+      - markdown
+      - json
+
+  auth:
+    enabled: false
+    username: "admin"
+    password: "changeme"

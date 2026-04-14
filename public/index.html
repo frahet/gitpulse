@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GitPulse</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <span class="logo-icon">⚡</span>
+    GITPULSE
+  </div>
+  <div class="header-meta">
+    <span id="last-updated">Loading…</span>
+    <button id="refresh-btn">↻ Refresh</button>
+  </div>
+</header>
+
+<main>
+
+  <!-- Stat cards -->
+  <div class="stat-grid">
+    <div class="stat-card">
+      <div class="stat-label">Commits</div>
+      <div class="stat-value" id="stat-commits">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Active Authors</div>
+      <div class="stat-value" id="stat-authors">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Repos</div>
+      <div class="stat-value" id="stat-repos">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Lines Added</div>
+      <div class="stat-value" style="color:var(--green)" id="stat-lines">—</div>
+      <div class="stat-sub" id="stat-lines-del" style="color:var(--red)"></div>
+    </div>
+  </div>
+
+  <!-- AI Summary panel -->
+  <div class="panel" id="summary-panel">
+    <div class="panel-header">
+      <span class="panel-title">AI Summary</span>
+      <span class="style-badge" id="summary-style-badge">standup</span>
+    </div>
+    <div class="panel-body">
+      <div id="summary-text" class="loading">Loading summary…</div>
+      <div class="highlights" id="summary-highlights" style="display:none">
+        <div class="highlights-label">Highlights</div>
+        <ul id="highlights-list"></ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Author activity table -->
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title">Activity by Author</span>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Author</th>
+          <th>Commits</th>
+          <th>Lines</th>
+          <th>Repos</th>
+          <th>Last Active</th>
+          <th>Latest Commit</th>
+        </tr>
+      </thead>
+      <tbody id="author-tbody">
+        <tr><td colspan="6" class="loading">Loading…</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Commit timeline -->
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title">Commit Timeline</span>
+    </div>
+    <div class="timeline" id="timeline">
+      <div class="loading">Loading…</div>
+    </div>
+  </div>
+
+  <!-- Per-repo sections -->
+  <div id="repos-container"></div>
+
+</main>
+
+<footer>
+  <a href="https://github.com/frahet/gitpulse" target="_blank" rel="noopener">GitPulse</a>
+  &nbsp;·&nbsp;
+  <a href="/api/report.md">Download Report (.md)</a>
+  &nbsp;·&nbsp;
+  <a href="/api/report.json">Download Report (.json)</a>
+</footer>
+
+<script src="/app.js"></script>
+</body>
+</html>

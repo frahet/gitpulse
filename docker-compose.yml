@@ -1,0 +1,21 @@
+services:
+  gitpulse:
+    build: .
+    ports:
+      - "3000:3000"
+    volumes:
+      # Mount your config file
+      - ./gitpulse.yml:/app/gitpulse.yml:ro
+      # Mount your repos — update the left side to your local path
+      - /path/to/your/repos:/repos:ro
+    environment:
+      # Required if ai.enabled: true in gitpulse.yml
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      # Optional: override config file location inside container
+      # - CONFIG_PATH=/app/gitpulse.yml
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
