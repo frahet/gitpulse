@@ -2,18 +2,27 @@ gitpulse:
   port: 3000
 
   repos:
-    # Local repo (default) — mount via Docker volume or use absolute path
+    # GitHub (recommended) — no volume mount needed
     - name: "my-app"
-      path: "/repos/my-app"
+      source: "github"
+      owner: "myorg"
+      repo: "my-app"
       branch: "main"
+      # token: "ghp_..."   # or set GITHUB_TOKEN env var
 
-    # GitHub repo — no volume mount needed, uses GitHub API
-    # - name: "backend-api"
-    #   source: "github"
-    #   owner: "myorg"
-    #   repo: "backend-api"
+    # GitLab
+    # - name: "backend"
+    #   source: "gitlab"
+    #   project_id: "12345678"   # found in GitLab project → Settings → General
     #   branch: "main"
-    #   token: "${GITHUB_TOKEN}"   # or set GITHUB_TOKEN env var
+    #   host: "https://gitlab.com"   # omit for gitlab.com, set for self-hosted
+    #   token: "glpat-..."           # or set GITLAB_TOKEN env var
+
+    # Local (Docker volume or absolute path)
+    # - name: "legacy-app"
+    #   source: "local"
+    #   path: "/repos/legacy-app"
+    #   branch: "main"
 
   ai:
     enabled: true
@@ -26,7 +35,7 @@ gitpulse:
     # provider: "mistral"
     # model: "mistral-large-latest"
     summary_style: "standup"      # standup | management | technical
-    context: null                 # optional: describe your project for better AI context
+    context: null                 # describe your project so AI understands domain
     # context: "Web3 SaaS. Users pay with ERC-20 tokens. Main repos: frontend (Next.js), contracts (Solidity)."
     diff_commits: 5               # how many recent commits to read actual diffs for
     diff_max_lines: 80            # truncate each diff at this many lines
@@ -51,8 +60,8 @@ gitpulse:
       style: "standup"
     email:
       enabled: false
-      smtp_host: null             # e.g. smtp.gmail.com
+      smtp_host: null             # smtp.gmail.com | smtp.sendgrid.net | etc.
       smtp_port: 587
       smtp_user: null
-      smtp_pass: null
-      to: null                    # recipient address
+      smtp_pass: null             # or set SMTP_PASS env var
+      to: null                    # recipient — comma-separate for multiple

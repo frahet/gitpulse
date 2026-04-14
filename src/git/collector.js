@@ -98,12 +98,12 @@ function truncateDiff(diffText, maxLines) {
 
 export async function collectAll(config) {
   const { collectGithubRepo } = await import('./github.js');
+  const { collectGitlabRepo } = await import('./gitlab.js');
 
   const results = await Promise.all(
     config.repos.map((repo) => {
-      if (repo.source === 'github') {
-        return collectGithubRepo(repo, config.reports.lookback_days);
-      }
+      if (repo.source === 'github') return collectGithubRepo(repo, config.reports.lookback_days);
+      if (repo.source === 'gitlab') return collectGitlabRepo(repo, config.reports.lookback_days);
       return collectRepo(repo, config.reports.lookback_days, config.ai.diff_commits, config.ai.diff_max_lines);
     })
   );

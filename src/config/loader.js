@@ -17,6 +17,7 @@ function validateConfig(raw) {
     const source = repo.source ?? 'local';
     if (source === 'local' && !repo.path) throw new Error(`Repo "${repo.name}" is missing a "path" field`);
     if (source === 'github' && (!repo.owner || !repo.repo)) throw new Error(`Repo "${repo.name}" needs "owner" and "repo" fields for source: github`);
+    if (source === 'gitlab' && !repo.project_id) throw new Error(`Repo "${repo.name}" needs a "project_id" field for source: gitlab`);
   }
 
   return {
@@ -24,9 +25,15 @@ function validateConfig(raw) {
     repos: cfg.repos.map((r) => ({
       name: r.name,
       source: r.source ?? 'local',
+      // local
       path: r.path ?? null,
+      // github
       owner: r.owner ?? null,
       repo: r.repo ?? null,
+      // gitlab
+      projectId: r.project_id ?? null,
+      host: r.host ?? null,
+      // shared
       branch: r.branch ?? 'main',
       token: r.token ?? null,
     })),
