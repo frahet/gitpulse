@@ -14,6 +14,7 @@ CONFIG_PATH=./gitpulse.local.yml node src/index.js
 ```
 
 Or with Docker:
+
 ```bash
 docker compose up
 ```
@@ -32,14 +33,15 @@ No volume mount needed. Uses the GitHub REST API.
 repos:
   - name: "my-app"
     source: "github"
-    owner: "myorg"        # GitHub org or username
-    repo: "my-app"        # repo name
+    owner: "myorg" # GitHub org or username
+    repo: "my-app" # repo name
     branch: "main"
-    token: "ghp_..."      # optional here — or set GITHUB_TOKEN in .env
+    token: "ghp_..." # optional here — or set GITHUB_TOKEN in .env
 ```
 
 **Getting a GitHub token:**
-1. Go to https://github.com/settings/tokens → "Generate new token (classic)"
+
+1. Go to <https://github.com/settings/tokens> → "Generate new token (classic)"
 2. Select scope: `repo` (read access to private repos) or just `public_repo` for public
 3. Copy token → paste into `.env` as `GITHUB_TOKEN=ghp_...`
 
@@ -55,14 +57,15 @@ Works with gitlab.com or any self-hosted GitLab instance.
 repos:
   - name: "backend"
     source: "gitlab"
-    project_id: "12345678"          # GitLab project → Settings → General → Project ID
+    project_id: "12345678" # GitLab project → Settings → General → Project ID
     branch: "main"
-    host: "https://gitlab.com"      # omit for gitlab.com; set for self-hosted
-    token: "glpat-..."              # optional — or set GITLAB_TOKEN in .env
+    host: "https://gitlab.com" # omit for gitlab.com; set for self-hosted
+    token: "glpat-..." # optional — or set GITLAB_TOKEN in .env
 ```
 
 **Getting a GitLab token:**
-1. Go to https://gitlab.com/-/user_settings/personal_access_tokens
+
+1. Go to <https://gitlab.com/-/user_settings/personal_access_tokens>
 2. Create token with scope: `read_api`
 3. Copy token → paste into `.env` as `GITLAB_TOKEN=glpat-...`
 
@@ -70,6 +73,7 @@ repos:
 Go to your GitLab project → Settings → General → look for "Project ID" at the top.
 
 **Self-hosted GitLab:**
+
 ```yaml
 repos:
   - name: "internal-api"
@@ -87,11 +91,12 @@ repos:
 repos:
   - name: "legacy-app"
     source: "local"
-    path: "/repos/legacy-app"    # inside container (Docker) or absolute path (bare Node)
+    path: "/repos/legacy-app" # inside container (Docker) or absolute path (bare Node)
     branch: "main"
 ```
 
 When using Docker, mount your repos folder:
+
 ```yaml
 # docker-compose.yml
 volumes:
@@ -109,7 +114,7 @@ Set `provider` and `model` in the `ai:` block. Set the matching key in `.env`.
 ```yaml
 ai:
   provider: "anthropic"
-  model: "claude-sonnet-4-6"      # fast, smart, cheap
+  model: "claude-sonnet-4-6" # fast, smart, cheap
   # model: "claude-opus-4-6"      # most capable
   # model: "claude-haiku-4-5-20251001"  # fastest, cheapest
 ```
@@ -118,7 +123,7 @@ ai:
 ANTHROPIC_API_KEY=sk-ant-...
 ```
 
-Get a key: https://console.anthropic.com → API Keys
+Get a key: <https://console.anthropic.com> → API Keys
 
 ---
 
@@ -136,7 +141,7 @@ ai:
 OPENAI_API_KEY=sk-...
 ```
 
-Get a key: https://platform.openai.com/api-keys
+Get a key: <https://platform.openai.com/api-keys>
 
 ---
 
@@ -153,7 +158,7 @@ ai:
 GOOGLE_GENERATIVE_AI_API_KEY=...
 ```
 
-Get a key: https://aistudio.google.com/app/apikey
+Get a key: <https://aistudio.google.com/app/apikey>
 
 ---
 
@@ -170,7 +175,7 @@ ai:
 MISTRAL_API_KEY=...
 ```
 
-Get a key: https://console.mistral.ai
+Get a key: <https://console.mistral.ai>
 
 ---
 
@@ -187,8 +192,9 @@ ai:
     'jobs' = construction projects. 'quotes' = cost estimates.
 ```
 
-Without context: *"changes were made to authentication code"*
-With context: *"Clerk auth integration was updated to handle multi-tenant session isolation"*
+Without context: _"changes were made to authentication code"_
+
+With context: _"Clerk auth integration was updated to handle multi-tenant session isolation"_
 
 ---
 
@@ -198,8 +204,8 @@ Controls how deeply the AI reads actual code changes vs just commit messages.
 
 ```yaml
 ai:
-  diff_commits: 5       # read diffs for 5 most recent commits per repo
-  diff_max_lines: 80    # truncate each diff at 80 lines
+  diff_commits: 5 # read diffs for 5 most recent commits per repo
+  diff_max_lines: 80 # truncate each diff at 80 lines
 ```
 
 Set `diff_commits: 0` to disable (faster, cheaper, summaries based on commit messages only).
@@ -211,15 +217,15 @@ Increase `diff_max_lines` for larger, more detailed analysis (uses more tokens).
 
 Three built-in styles, switchable from the dashboard or API:
 
-| Style | Best for | Output |
-|-------|----------|--------|
-| `standup` | Daily standups | Bullet points per person: what they did, what's in progress |
-| `management` | Stakeholders, reports | Plain English, no jargon, focuses on outcomes and value |
-| `technical` | Code review, PR context | File paths, component names, PR-like language |
+| Style        | Best for                | Output                                                      |
+| ------------ | ----------------------- | ----------------------------------------------------------- |
+| `standup`    | Daily standups          | Bullet points per person: what they did, what's in progress |
+| `management` | Stakeholders, reports   | Plain English, no jargon, focuses on outcomes and value     |
+| `technical`  | Code review, PR context | File paths, component names, PR-like language               |
 
 ```yaml
 ai:
-  summary_style: "standup"    # default style on load
+  summary_style: "standup" # default style on load
 ```
 
 All styles are available on-demand from the dashboard — no restart needed.
@@ -239,7 +245,8 @@ notifications:
 ```
 
 **Setting up a Slack webhook:**
-1. Go to https://api.slack.com/apps → Create New App → "From scratch"
+
+1. Go to <https://api.slack.com/apps> → Create New App → "From scratch"
 2. Add feature: "Incoming Webhooks" → Activate
 3. "Add New Webhook to Workspace" → choose channel
 4. Copy the webhook URL → paste into `webhook_url`
@@ -252,7 +259,8 @@ The report fires automatically on your cron schedule.
 
 GitPulse works with any SMTP server. Common setups:
 
-**Gmail (App Password)**
+#### Gmail (App Password)
+
 ```yaml
 notifications:
   email:
@@ -260,15 +268,18 @@ notifications:
     smtp_host: "smtp.gmail.com"
     smtp_port: 587
     smtp_user: "you@gmail.com"
-    smtp_pass: null       # set SMTP_PASS in .env
+    smtp_pass: null # set SMTP_PASS in .env
     to: "team@company.com"
 ```
+
 ```env
 SMTP_PASS=xxxx-xxxx-xxxx-xxxx   # Gmail App Password, not your account password
 ```
-> Gmail requires an App Password if 2FA is on. Create one at https://myaccount.google.com/apppasswords
 
-**SendGrid**
+> Gmail requires an App Password if 2FA is on. Create one at <https://myaccount.google.com/apppasswords>
+
+#### SendGrid
+
 ```yaml
 notifications:
   email:
@@ -276,11 +287,12 @@ notifications:
     smtp_host: "smtp.sendgrid.net"
     smtp_port: 587
     smtp_user: "apikey"
-    smtp_pass: null   # set SMTP_PASS=SG.xxx in .env
+    smtp_pass: null # set SMTP_PASS=SG.xxx in .env
     to: "team@company.com"
 ```
 
-**Mailgun**
+#### Mailgun
+
 ```yaml
 notifications:
   email:
@@ -288,11 +300,12 @@ notifications:
     smtp_host: "smtp.mailgun.org"
     smtp_port: 587
     smtp_user: "postmaster@mg.yourdomain.com"
-    smtp_pass: null   # set SMTP_PASS in .env
+    smtp_pass: null # set SMTP_PASS in .env
     to: "team@company.com"
 ```
 
 **Multiple recipients** — comma-separate:
+
 ```yaml
 to: "alice@company.com, bob@company.com, reports@company.com"
 ```
@@ -305,7 +318,7 @@ Standard cron syntax. Runs in the server's local timezone.
 
 ```yaml
 reports:
-  schedule: "0 9 * * 1-5"    # weekdays at 9am
+  schedule: "0 9 * * 1-5" # weekdays at 9am
   # schedule: "0 8 * * 1"    # Monday 8am only
   # schedule: "0 17 * * 5"   # Friday 5pm
   # schedule: null            # disable scheduled reports
@@ -313,7 +326,8 @@ reports:
 ```
 
 Cron cheatsheet:
-```
+
+```text
 ┌─ minute (0-59)
 │  ┌─ hour (0-23)
 │  │  ┌─ day of month (1-31)
@@ -339,8 +353,6 @@ auth:
   password: "strong-password-here"
 ```
 
-> Keep the password in `.env` if you prefer: set `password: "${DASHBOARD_PASSWORD}"` — GitPulse resolves env var references in string fields.
-
 ---
 
 ## Docker
@@ -355,7 +367,7 @@ services:
       - "3000:3000"
     volumes:
       - ./gitpulse.yml:/app/gitpulse.yml:ro
-      - ./data:/app/data                  # persist SQLite report history
+      - ./data:/app/data # persist SQLite report history
     env_file:
       - .env
     restart: unless-stopped
@@ -367,6 +379,7 @@ services:
 ```
 
 With local repos mounted:
+
 ```yaml
 volumes:
   - ./gitpulse.yml:/app/gitpulse.yml:ro
@@ -378,17 +391,17 @@ volumes:
 
 ## Environment variables reference
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `ANTHROPIC_API_KEY` | If using Anthropic | Claude API key |
-| `OPENAI_API_KEY` | If using OpenAI | OpenAI API key |
-| `GOOGLE_GENERATIVE_AI_API_KEY` | If using Google | Gemini API key |
-| `MISTRAL_API_KEY` | If using Mistral | Mistral API key |
-| `GITHUB_TOKEN` | If using GitHub repos | Personal access token |
-| `GITLAB_TOKEN` | If using GitLab repos | Personal access token |
-| `SMTP_PASS` | If email enabled | SMTP password |
-| `CONFIG_PATH` | No | Override config file location |
-| `DB_PATH` | No | Override SQLite database path |
+| Variable                       | Required              | Description                   |
+| ------------------------------ | --------------------- | ----------------------------- |
+| `ANTHROPIC_API_KEY`            | If using Anthropic    | Claude API key                |
+| `OPENAI_API_KEY`               | If using OpenAI       | OpenAI API key                |
+| `GOOGLE_GENERATIVE_AI_API_KEY` | If using Google       | Gemini API key                |
+| `MISTRAL_API_KEY`              | If using Mistral      | Mistral API key               |
+| `GITHUB_TOKEN`                 | If using GitHub repos | Personal access token         |
+| `GITLAB_TOKEN`                 | If using GitLab repos | Personal access token         |
+| `SMTP_PASS`                    | If email enabled      | SMTP password                 |
+| `CONFIG_PATH`                  | No                    | Override config file location |
+| `DB_PATH`                      | No                    | Override SQLite database path |
 
 ---
 
@@ -450,6 +463,7 @@ gitpulse:
 ```
 
 `.env`:
+
 ```env
 ANTHROPIC_API_KEY=sk-ant-...
 GITHUB_TOKEN=ghp_...
