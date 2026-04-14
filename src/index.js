@@ -11,7 +11,7 @@ import { collectAll } from './git/collector.js';
 import { parseRepoData } from './git/parser.js';
 import { generateSummary, clearCache } from './ai/summarizer.js';
 import { buildMarkdownReport, buildJsonReport } from './reports/generator.js';
-import { saveReport, listReports, getReport } from './storage/db.js';
+import { saveReport, listReports, getReport, getTodaysReport } from './storage/db.js';
 import { sendSlackNotification } from './notifications/slack.js';
 import { sendEmailNotification } from './notifications/email.js';
 
@@ -108,13 +108,27 @@ const VALID_STYLES = ['standup', 'management', 'technical'];
 app.get('/api/summary', async (req, reply) => {
   try {
     const styleParam = req.query.style;
-    const style = VALID_STYLES.includes(styleParam) ? styleParam : null;
+    const style = VALID_STYLES.includes(styleParam) ? styleParam : (config.ai.summary_style ?? 'standup');
+    const force = req.query.force === 'true';
+
+    // Serve from DB if we already generated one today for this style
+    if (!force) {
+      const cached = getTodaysReport(style);
+      if (cached?.summary) {
+        return reply.send({ ...cached.summary, source: 'db' });
+      }
+    }
+
+    if (!config.ai.enabled) {
+      return reply.send({ enabled: false, message: 'AI summaries are disabled' });
+    }
+
     const data = await getActivityData();
     const summary = await generateSummary(data, config.ai, style);
     if (!summary) {
-      return reply.send({ enabled: false, message: 'AI summaries are disabled or ANTHROPIC_API_KEY not set' });
+      return reply.send({ enabled: false, message: 'AI summary could not be generated' });
     }
-    // Persist to history
+
     try {
       saveReport({
         style: summary.style,
@@ -125,7 +139,8 @@ app.get('/api/summary', async (req, reply) => {
         fullData: { stats: data.stats, byAuthor: data.byAuthor, byDay: data.byDay, hotFiles: data.hotFiles },
       });
     } catch (_) { /* non-fatal */ }
-    return reply.send(summary);
+
+    return reply.send({ ...summary, source: 'live' });
   } catch (err) {
     reply.status(500).send({ error: err.message });
   }

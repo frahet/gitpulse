@@ -63,6 +63,21 @@ export function getReport(id) {
   return { ...deserializeReport(row), fullData: JSON.parse(row.full_data) };
 }
 
+// Returns the most recent saved report for a given style from today (UTC date).
+// Used to serve from DB instead of calling the AI API again.
+export function getTodaysReport(style) {
+  const db = getDb();
+  const today = new Date().toISOString().slice(0, 10); // "2026-04-14"
+  const row = db.prepare(`
+    SELECT * FROM reports
+    WHERE style = ? AND date(created_at) = ?
+    ORDER BY created_at DESC
+    LIMIT 1
+  `).get(style, today);
+  if (!row) return null;
+  return { ...deserializeReport(row), fullData: JSON.parse(row.full_data) };
+}
+
 function deserializeReport(row) {
   return {
     ...row,

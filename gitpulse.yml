@@ -41,7 +41,7 @@ gitpulse:
     diff_max_lines: 80            # truncate each diff at this many lines
 
   reports:
-    schedule: "0 9 * * 1-5"      # cron — weekdays at 9am. Set null to disable.
+    schedule: "0 6 * * 1-5"      # cron — weekdays at 6am. Set null to disable.
     lookback_days: 7
     output_formats:
       - html

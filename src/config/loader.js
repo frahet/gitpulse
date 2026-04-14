@@ -62,7 +62,7 @@ function validateConfig(raw) {
       },
     },
     reports: {
-      schedule: cfg.reports?.schedule ?? '0 9 * * 1-5',
+      schedule: cfg.reports?.schedule ?? '0 6 * * 1-5',
       lookback_days: cfg.reports?.lookback_days ?? 7,
       output_formats: cfg.reports?.output_formats ?? ['html', 'json'],
     },
