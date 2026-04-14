@@ -1,11 +1,9 @@
-/**
- * Normalize raw collected repo data into a unified analytics structure.
- */
 export function parseRepoData(repoDataArray) {
   const allCommits = repoDataArray.flatMap((r) => r.commits);
 
   const byAuthor = groupByAuthor(allCommits);
   const byDay = groupByDay(allCommits);
+  const hotFiles = buildHotFiles(allCommits);
   const stats = summarizeStats(allCommits, repoDataArray);
 
   return {
@@ -19,6 +17,7 @@ export function parseRepoData(repoDataArray) {
     allCommits,
     byAuthor,
     byDay,
+    hotFiles,
     stats,
     collectedAt: new Date().toISOString(),
   };
@@ -46,12 +45,8 @@ function groupByAuthor(commits) {
     entry.insertions += c.insertions;
     entry.deletions += c.deletions;
     entry.repos.add(c.repo);
-    if (!entry.lastActive || c.date > entry.lastActive) {
-      entry.lastActive = c.date;
-    }
-    if (entry.recentMessages.length < 5) {
-      entry.recentMessages.push(c.message);
-    }
+    if (!entry.lastActive || c.date > entry.lastActive) entry.lastActive = c.date;
+    if (entry.recentMessages.length < 5) entry.recentMessages.push(c.message);
   }
 
   return Array.from(map.values())
@@ -79,6 +74,28 @@ function groupByDay(commits) {
     .sort((a, b) => a.date.localeCompare(b.date));
 }
 
+function buildHotFiles(commits, topN = 20) {
+  const map = new Map();
+
+  for (const c of commits) {
+    for (const f of (c.files ?? [])) {
+      if (!map.has(f.path)) {
+        map.set(f.path, { path: f.path, commitCount: 0, insertions: 0, deletions: 0, repos: new Set() });
+      }
+      const entry = map.get(f.path);
+      entry.commitCount++;
+      entry.insertions += f.insertions ?? 0;
+      entry.deletions += f.deletions ?? 0;
+      entry.repos.add(c.repo);
+    }
+  }
+
+  return Array.from(map.values())
+    .map((f) => ({ ...f, repos: Array.from(f.repos) }))
+    .sort((a, b) => b.commitCount - a.commitCount)
+    .slice(0, topN);
+}
+
 function summarizeStats(commits, repoDataArray) {
   const authors = new Set(commits.map((c) => c.email || c.author));
   const totalInsertions = commits.reduce((s, c) => s + c.insertions, 0);
@@ -88,9 +105,7 @@ function summarizeStats(commits, repoDataArray) {
     acc[c.author] = (acc[c.author] ?? 0) + 1;
     return acc;
   }, {});
-
   const topAuthor = Object.entries(mostActiveAuthor).sort((a, b) => b[1] - a[1])[0];
-
   const errors = repoDataArray.filter((r) => r.error).map((r) => ({ repo: r.name, error: r.error }));
 
   return {

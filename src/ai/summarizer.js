@@ -48,9 +48,14 @@ export async function generateSummary(parsedData, aiConfig, styleOverride = null
   const styleInstruction = STYLE_INSTRUCTIONS[style] ?? STYLE_INSTRUCTIONS.standup;
   const prompt = buildPrompt(parsedData, styleInstruction);
 
+  const systemPrompt = [
+    'You are an engineering analytics assistant. You receive structured git activity data and produce clear, useful summaries. Be factual — only report what the data shows.',
+    aiConfig.context ? `PROJECT CONTEXT: ${aiConfig.context}` : null,
+  ].filter(Boolean).join('\n\n');
+
   const { text } = await generateText({
     model: getModel(provider, model),
-    system: 'You are an engineering analytics assistant. You receive structured git activity data and produce clear, useful summaries. Be factual — only report what the data shows.',
+    system: systemPrompt,
     prompt,
     maxTokens: 1024,
   });
@@ -80,7 +85,9 @@ export function clearCache() {
 }
 
 function buildPrompt(parsedData, styleInstruction) {
-  const { stats, byAuthor, byDay, repos } = parsedData;
+  const { stats, byAuthor, byDay, repos, hotFiles, allCommits } = parsedData;
+
+  const repoLines = repos.map((r) => `  - ${r.name}: ${r.commitCount} commits`).join('\n');
 
   const authorLines = byAuthor
     .map((a) => `  - ${a.name} (${a.commitCount} commits, +${a.insertions}/-${a.deletions} lines): ${a.recentMessages.slice(0, 3).join('; ')}`)
@@ -90,7 +97,16 @@ function buildPrompt(parsedData, styleInstruction) {
     .map((d) => `  ${d.date}: ${d.commitCount} commits by ${d.authors.join(', ')}`)
     .join('\n');
 
-  const repoLines = repos.map((r) => `  - ${r.name}: ${r.commitCount} commits`).join('\n');
+  const hotFileLines = (hotFiles ?? []).slice(0, 10)
+    .map((f) => `  - ${f.path} (${f.commitCount} commits, +${f.insertions}/-${f.deletions})`)
+    .join('\n');
+
+  // Include actual diffs for recent commits that have them
+  const diffSections = allCommits
+    .filter((c) => c.diff)
+    .slice(0, 5)
+    .map((c) => `=== ${c.hash} by ${c.author}: ${c.message} ===\n${c.diff}`)
+    .join('\n\n');
 
   return `
 Here is the git activity data for the reporting period:
@@ -109,6 +125,10 @@ ${authorLines}
 
 ACTIVITY BY DAY
 ${dayLines}
+
+${hotFileLines ? `MOST CHANGED FILES\n${hotFileLines}` : ''}
+
+${diffSections ? `RECENT COMMIT DIFFS (actual code changes)\n${diffSections}` : ''}
 
 SUMMARY STYLE: ${styleInstruction}
 

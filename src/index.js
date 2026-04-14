@@ -11,6 +11,9 @@ import { collectAll } from './git/collector.js';
 import { parseRepoData } from './git/parser.js';
 import { generateSummary, clearCache } from './ai/summarizer.js';
 import { buildMarkdownReport, buildJsonReport } from './reports/generator.js';
+import { saveReport, listReports, getReport } from './storage/db.js';
+import { sendSlackNotification } from './notifications/slack.js';
+import { sendEmailNotification } from './notifications/email.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -111,7 +114,37 @@ app.get('/api/summary', async (req, reply) => {
     if (!summary) {
       return reply.send({ enabled: false, message: 'AI summaries are disabled or ANTHROPIC_API_KEY not set' });
     }
+    // Persist to history
+    try {
+      saveReport({
+        style: summary.style,
+        provider: summary.provider,
+        model: summary.model,
+        stats: data.stats,
+        summary,
+        fullData: { stats: data.stats, byAuthor: data.byAuthor, byDay: data.byDay, hotFiles: data.hotFiles },
+      });
+    } catch (_) { /* non-fatal */ }
     return reply.send(summary);
+  } catch (err) {
+    reply.status(500).send({ error: err.message });
+  }
+});
+
+app.get('/api/history', async (req, reply) => {
+  try {
+    const limit = Math.min(parseInt(req.query.limit ?? '50', 10), 200);
+    return reply.send({ reports: listReports(limit) });
+  } catch (err) {
+    reply.status(500).send({ error: err.message });
+  }
+});
+
+app.get('/api/history/:id', async (req, reply) => {
+  try {
+    const report = getReport(parseInt(req.params.id, 10));
+    if (!report) return reply.status(404).send({ error: 'Report not found' });
+    return reply.send(report);
   } catch (err) {
     reply.status(500).send({ error: err.message });
   }
@@ -155,6 +188,53 @@ app.post('/api/refresh', async (_req, reply) => {
     reply.status(500).send({ error: err.message });
   }
 });
+
+// --- Cron scheduler ---
+import cron from 'node-cron';
+
+async function runScheduledReport() {
+  console.log('[gitpulse] Running scheduled report...');
+  try {
+    dataCache = null;
+    dataCacheAt = null;
+    clearCache();
+    const data = await getActivityData();
+    const style = config.ai.summary_style;
+    const summary = config.ai.enabled ? await generateSummary(data, config.ai, style) : null;
+    const md = buildMarkdownReport(data, summary, config);
+
+    if (summary) {
+      try { saveReport({ style, provider: summary.provider, model: summary.model, stats: data.stats, summary, fullData: data }); } catch (_) {}
+    }
+
+    const notifConfig = config.notifications;
+
+    if (notifConfig?.slack?.enabled && summary) {
+      try {
+        await sendSlackNotification(summary, data.stats, notifConfig.slack);
+        console.log('[gitpulse] Slack notification sent');
+      } catch (err) {
+        console.error(`[gitpulse] Slack notification failed: ${err.message}`);
+      }
+    }
+
+    if (notifConfig?.email?.enabled) {
+      try {
+        await sendEmailNotification(summary, data.stats, md, notifConfig.email);
+        console.log('[gitpulse] Email notification sent');
+      } catch (err) {
+        console.error(`[gitpulse] Email notification failed: ${err.message}`);
+      }
+    }
+  } catch (err) {
+    console.error(`[gitpulse] Scheduled report failed: ${err.message}`);
+  }
+}
+
+if (config.reports.schedule) {
+  cron.schedule(config.reports.schedule, runScheduledReport);
+  console.log(`[gitpulse] Scheduled report: ${config.reports.schedule}`);
+}
 
 // --- Start ---
 const port = config.port;

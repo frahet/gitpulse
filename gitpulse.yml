@@ -2,12 +2,18 @@ gitpulse:
   port: 3000
 
   repos:
+    # Local repo (default) — mount via Docker volume or use absolute path
     - name: "my-app"
-      path: "/repos/my-app"       # local path — mount via Docker volume
+      path: "/repos/my-app"
       branch: "main"
-    - name: "backend-api"
-      path: "/repos/backend-api"
-      branch: "main"
+
+    # GitHub repo — no volume mount needed, uses GitHub API
+    # - name: "backend-api"
+    #   source: "github"
+    #   owner: "myorg"
+    #   repo: "backend-api"
+    #   branch: "main"
+    #   token: "${GITHUB_TOKEN}"   # or set GITHUB_TOKEN env var
 
   ai:
     enabled: true
@@ -15,15 +21,18 @@ gitpulse:
     model: "claude-sonnet-4-6"
     # provider: "openai"
     # model: "gpt-4o"
-    
     # provider: "google"
     # model: "gemini-2.0-flash"
     # provider: "mistral"
     # model: "mistral-large-latest"
     summary_style: "standup"      # standup | management | technical
+    context: null                 # optional: describe your project for better AI context
+    # context: "Web3 SaaS. Users pay with ERC-20 tokens. Main repos: frontend (Next.js), contracts (Solidity)."
+    diff_commits: 5               # how many recent commits to read actual diffs for
+    diff_max_lines: 80            # truncate each diff at this many lines
 
   reports:
-    schedule: "0 9 * * 1-5"      # weekdays at 9am
+    schedule: "0 9 * * 1-5"      # cron — weekdays at 9am. Set null to disable.
     lookback_days: 7
     output_formats:
       - html
@@ -34,3 +43,16 @@ gitpulse:
     enabled: false
     username: "admin"
     password: "changeme"
+
+  notifications:
+    slack:
+      enabled: false
+      webhook_url: null           # https://hooks.slack.com/services/...
+      style: "standup"
+    email:
+      enabled: false
+      smtp_host: null             # e.g. smtp.gmail.com
+      smtp_port: 587
+      smtp_user: null
+      smtp_pass: null
+      to: null                    # recipient address
